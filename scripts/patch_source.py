@@ -14,6 +14,9 @@ def replace_once(path, before, after):
     path.write_text(content.replace(before, after, 1))
 
 def apply(source):
+    replace_once(source / 'gpu/shim/macos_metalfx.mm', '#import <Metal/Metal.h>', '#import <Metal/Metal.h>\n#if __MAC_OS_X_VERSION_MAX_ALLOWED < 270000\n@interface MTLTextureViewDescriptor (BBSDK27Declarations)\n@property(nonatomic) float minLOD API_AVAILABLE(macos(27.0));\n@end\n#endif')
+    replace_once(source / 'gpu/shim/macos_metal_shader.mm', '#include <spirv_cross/spirv_msl.hpp>', '#include <spirv_cross/spirv_msl.hpp>\n#include <spirv_cross/spirv_parser.hpp>\n#include <utility>')
+    replace_once(source / 'gpu/shim/macos_metal_shader.mm', '                spirv_cross::CompilerMSL compiler(spirv.data(), spirv.size());\n                if (compiler.get_ir().addressing_model != spv::AddressingModelLogical)\n                    throw std::runtime_error("Physical guest pointers require a native page table");', '                spirv_cross::Parser parser(spirv.data(), spirv.size());\n                parser.parse();\n                if (parser.get_parsed_ir().addressing_model != spv::AddressingModelLogical)\n                    throw std::runtime_error("Physical guest pointers require a native page table");\n                spirv_cross::CompilerMSL compiler(std::move(parser.get_parsed_ir()));')
     # Keep the renderer and installed Vulkan headers aligned.
     replace_once(
         source / "macos/dependencies.cmake",
