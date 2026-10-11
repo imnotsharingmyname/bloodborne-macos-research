@@ -5,7 +5,7 @@
   },
   "vulkan_headers": {
     "url": "https://github.com/KhronosGroup/Vulkan-Headers.git",
-    "commit": "ee3b5caaa7e372715873c7b9c390ee1c3ca5db25"
+    "commit": "8864cdc896bbc2a9b6eb36b3218fc9ef57908d77"
   },
   "vulkan_loader": {
     "url": "https://github.com/KhronosGroup/Vulkan-Loader.git",

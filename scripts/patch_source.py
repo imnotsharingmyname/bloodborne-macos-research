@@ -14,6 +14,12 @@ def replace_once(path, before, after):
     path.write_text(content.replace(before, after, 1))
 
 def apply(source):
+    # Keep the renderer and installed Vulkan headers aligned.
+    replace_once(
+        source / "macos/dependencies.cmake",
+        "bb_dependency(bbheaders KhronosGroup/Vulkan-Headers ee3b5caaa7e372715873c7b9c390ee1c3ca5db25)",
+        "bb_dependency(bbheaders KhronosGroup/Vulkan-Headers 8864cdc896bbc2a9b6eb36b3218fc9ef57908d77)",
+    )
     vkdir = source / 'gpu/shadps4/video_core/renderer_vulkan'
     shutil.copy2(ROOT / 'graphics/bb_pipeline_store.hpp', vkdir / 'bb_pipeline_store.hpp')
     cpp = vkdir / 'vk_pipeline_cache.cpp'
