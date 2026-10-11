@@ -1,0 +1,37 @@
+name: Experimental macOS build
+on:
+  workflow_dispatch:
+    inputs:
+      launcher_only:
+        description: Build only the arm64 launcher scaffold
+        type: boolean
+        default: true
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select installed Xcode and verify SDK
+        run: |
+          export DEVELOPER_DIR=/Applications/Xcode_26.6.app/Contents/Developer
+          test -d "$DEVELOPER_DIR"
+          echo "DEVELOPER_DIR=$DEVELOPER_DIR" >> "$GITHUB_ENV"
+          xcodebuild -version
+          xcrun --sdk macosx --show-sdk-version
+      - name: Native launcher scaffold
+        if: inputs.launcher_only
+        run: bash build_mac.sh --launcher-only
+      - name: Experimental Rosetta runtime and bundled dependencies
+        if: ${{ !inputs.launcher_only }}
+        run: bash build_mac.sh --jobs 3
+      - name: Archive without publishing a release
+        run: ditto -c -k --keepParent out/Bloodborne.app out/Bloodborne-experimental.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Bloodborne-experimental-not-notarized
+          path: out/Bloodborne-experimental.zip
+          if-no-files-found: error
+          retention-days: 14

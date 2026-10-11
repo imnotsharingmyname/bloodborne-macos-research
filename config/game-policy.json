@@ -1,0 +1,7 @@
+{
+  "title_id": "CUSA03173",
+  "app_version": "01.09",
+  "accepted_eboot_sha256": [],
+  "require_verified_hash": false,
+  "note": "Metadata and plaintext SELF layout are checked. Empty hashes do not prove exact eboot revision. Public releases must use an independently verified allowlist for this SELF-based backend; do not copy an ELF hash from bbhost."
+}

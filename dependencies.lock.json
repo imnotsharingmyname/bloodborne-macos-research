@@ -1,0 +1,32 @@
+{
+  "source": {
+    "url": "https://github.com/Livio21/metalborne.git",
+    "commit": "c3720ecf067e33c118d2ab04647facfa882f26b7"
+  },
+  "vulkan_headers": {
+    "url": "https://github.com/KhronosGroup/Vulkan-Headers.git",
+    "commit": "ee3b5caaa7e372715873c7b9c390ee1c3ca5db25"
+  },
+  "vulkan_loader": {
+    "url": "https://github.com/KhronosGroup/Vulkan-Loader.git",
+    "commit": "466498bc64eb77955c3b782f0127520548224de0"
+  },
+  "spirv_cross": {
+    "url": "https://github.com/KhronosGroup/SPIRV-Cross.git",
+    "commit": "d8e3e2b141b8c8a167b2e3984736a6baacff316c"
+  },
+  "moltenvk": {
+    "version": "1.4.2",
+    "url": "https://github.com/KhronosGroup/MoltenVK/releases/download/v1.4.2/MoltenVK-macos.tar",
+    "sha256": "f95765a6229cb7b915990a2890ce12ebe36a730b021545d3d52ae69ce4c4024e"
+  },
+  "python": {
+    "version": "3.13.7",
+    "url": "https://www.python.org/ftp/python/3.13.7/Python-3.13.7.tgz",
+    "sha256": "6c9d80839cfa20024f34d9a6dd31ae2a9cd97ff5e980e969209746037a5153b2"
+  },
+  "builder_tools": {
+    "cmake": "3.31.10",
+    "ninja": "1.11.1.4"
+  }
+}
