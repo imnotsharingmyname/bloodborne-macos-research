@@ -123,6 +123,8 @@ def make_config(resolution, fsr):
 
 def launch(a, policy):
     checked = validate(a.game, policy, BACKEND / 'scripts')
+    if checked['title_id'] in policy.get('experimental_title_ids', []) and a.fps != '30':
+        raise ValueError('FPS++ is not validated for this experimental title/executable. Use 30 FPS in the source build; the tested prepatched executable needs a separate, hash-verified patch policy.')
     game = Path(checked['game'])
     data = Path(a.data).expanduser().resolve()
     data.mkdir(parents=True, exist_ok=True)
