@@ -1,0 +1,51 @@
+name: M1 Pro experimental KosmicKrisp build
+on:
+  push:
+    branches: [perf/m1-pro-kosmickrisp-diagnostics]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  experimental:
+    runs-on: macos-26
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: |
+          export DEVELOPER_DIR=/Applications/Xcode_26.6.app/Contents/Developer
+          test -d "$DEVELOPER_DIR"
+          echo "DEVELOPER_DIR=$DEVELOPER_DIR" >> "$GITHUB_ENV"
+          xcodebuild -version
+      - name: Portable syntax checks
+        run: |
+          python3 -m py_compile runtime/launch.py scripts/install_kosmickrisp.py
+          python3 -m json.tool config/game-policy.json >/dev/null
+      - name: Build x86_64 experimental Rosetta runtime
+        run: bash build_mac.sh --jobs 3
+      - name: Fetch tested x86_64 KosmicKrisp artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p .work/kosmickrisp
+          gh run download 36946188430 \
+            --repo shadexternals/mesa-kosmickrisp \
+            --name kosmickrisp-x86_64 \
+            --dir .work/kosmickrisp
+          test -s .work/kosmickrisp/libvulkan_kosmickrisp.dylib
+          ditto -c -k .work/kosmickrisp .work/kosmickrisp-x86_64.zip
+      - name: Bundle, sign and audit preferred Vulkan ICD
+        run: |
+          python3 scripts/install_kosmickrisp.py .work/kosmickrisp-x86_64.zip out/Bloodborne.app
+          python3 scripts/sign.py out/Bloodborne.app --identity -
+          python3 scripts/audit.py out/Bloodborne.app
+          python3 -m json.tool out/Bloodborne.app/Contents/Resources/vulkan/kosmickrisp/kosmickrisp_mesa_icd.json
+      - name: Archive standalone experimental app
+        run: ditto -c -k --keepParent out/Bloodborne.app out/Bloodborne-KosmicKrisp-experimental.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Bloodborne-KosmicKrisp-experimental
+          path: out/Bloodborne-KosmicKrisp-experimental.zip
+          if-no-files-found: error
+          retention-days: 14
