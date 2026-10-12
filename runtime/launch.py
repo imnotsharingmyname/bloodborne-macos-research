@@ -168,6 +168,8 @@ def launch(a, policy):
         env['BB_VK_RECORD_THREAD'] = '0'
     if a.perf_diagnostics:
         env.update(BB_FRAME_STATS='1', BB_PRESENT_STATS='1', BB_BUFFER_STATS='1')
+    if a.gpu_profile:
+        env['BB_GPU_PROFILE'] = '1'
     namespace = {'driver': driver_name, 'game': checked['eboot_sha256'], 'os': platform.mac_ver()[0],
                  'os_build': os.uname().version,
                  'build': json.loads((RESOURCES / 'dependencies.lock.json').read_text()),
@@ -185,7 +187,7 @@ def launch(a, policy):
     os.chdir(BACKEND)
     print(checked['message'], flush=True)
     print('Preparing private guest images. Original dump remains read-only.', flush=True)
-    print('Vulkan driver: ' + driver_name + '; GPU mode: ' + a.gpu_mode + '; performance diagnostics: ' + ('on' if a.perf_diagnostics else 'off'), flush=True)
+    print('Vulkan driver: ' + driver_name + '; GPU mode: ' + a.gpu_mode + '; performance diagnostics: ' + ('on' if a.perf_diagnostics else 'off') + '; GPU timestamp profile: ' + ('on' if a.gpu_profile else 'off'), flush=True)
     run_script('prepare.py', [game, '--out', generated])
     run_script('link_libc.py', [game, '--out', generated])
     run_script('link_modules.py', [game, '--out', generated])
@@ -221,6 +223,7 @@ def main():
     p.add_argument('--fsr', action='store_true')
     p.add_argument('--perf-diagnostics', action='store_true', help='Enable runtime frame/present/buffer statistics where supported')
     p.add_argument('--gpu-mode', choices=['baseline', 'queue2', 'direct-record'], default='baseline', help='Experimental GPU submission/recording A/B mode')
+    p.add_argument('--gpu-profile', action='store_true', help='Intrusive Vulkan GPU timestamps by render-pass label')
     p.add_argument('--skip-intro', action='store_true')
     a = p.parse_args()
     try:
