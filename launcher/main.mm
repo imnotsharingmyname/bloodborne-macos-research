@@ -6,8 +6,11 @@
 @property(strong) NSTextField *status;
 @property(strong) NSPopUpButton *resolution;
 @property(strong) NSPopUpButton *fps;
+@property(strong) NSPopUpButton *gpuMode;
 @property(strong) NSButton *fsr;
 @property(strong) NSButton *skip;
+@property(strong) NSButton *perfDiagnostics;
+@property(strong) NSButton *gpuProfile;
 @property(strong) NSButton *selectButton;
 @property(strong) NSButton *launchButton;
 @property(strong) NSTask *worker;
@@ -52,8 +55,11 @@
     self.launchButton.enabled = !busy && self.valid && [self hasBackend];
     self.resolution.enabled = !busy;
     self.fps.enabled = !busy;
+    self.gpuMode.enabled = !busy;
     self.fsr.enabled = !busy;
     self.skip.enabled = !busy;
+    self.perfDiagnostics.enabled = !busy;
+    self.gpuProfile.enabled = !busy;
 }
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
     (void)notification;
@@ -69,7 +75,7 @@
     self.dataURL = [support URLByAppendingPathComponent:@"BloodborneResearch" isDirectory:YES];
     [NSFileManager.defaultManager createDirectoryAtURL:self.dataURL
                            withIntermediateDirectories:YES attributes:nil error:nil];
-    self.window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 660, 500)
+    self.window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 660, 625)
         styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable
         backing:NSBackingStoreBuffered defer:NO];
     self.window.title = @"Bloodborne — Experimental macOS port";
@@ -101,10 +107,20 @@
                                                             [self label:@"Frame cap"], self.fps]];
     settings.spacing = 10;
     [stack addArrangedSubview:settings];
+    self.gpuMode = [[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:NO];
+    [self.gpuMode addItemsWithTitles:@[@"Baseline (known working)", @"Queue 2 GPU frames (experimental)", @"Direct Vulkan recording (experimental)"]];
+    NSStackView *gpuSettings = [NSStackView stackViewWithViews:@[
+        [self label:@"GPU scheduling"], self.gpuMode]];
+    gpuSettings.spacing = 10;
+    [stack addArrangedSubview:gpuSettings];
     self.fsr = [NSButton checkboxWithTitle:@"FSR 3.1 Quality (experimental)" target:nil action:nil];
     self.skip = [NSButton checkboxWithTitle:@"Skip intro and warning screens" target:nil action:nil];
     [stack addArrangedSubview:self.fsr];
     [stack addArrangedSubview:self.skip];
+    self.perfDiagnostics = [NSButton checkboxWithTitle:@"Collect frame/present/buffer diagnostics (experimental)" target:nil action:nil];
+    [stack addArrangedSubview:self.perfDiagnostics];
+    self.gpuProfile = [NSButton checkboxWithTitle:@"Record GPU pass timestamps (intrusive; diagnostic only)" target:nil action:nil];
+    [stack addArrangedSubview:self.gpuProfile];
     [stack addArrangedSubview:[self label:@"30 FPS is the starting target. Higher caps and upscaling do not guarantee performance or compatibility."]];
     NSStackView *actions = [NSStackView stackViewWithViews:@[
         self.launchButton = [self button:@"Launch Bloodborne" action:@selector(launch:)],
@@ -230,6 +246,10 @@
         [NSString stringWithFormat:@"%ld", (long)self.resolution.indexOfSelectedItem]] mutableCopy];
     if (self.fsr.state == NSControlStateValueOn) [args addObject:@"--fsr"];
     if (self.skip.state == NSControlStateValueOn) [args addObject:@"--skip-intro"];
+    if (self.perfDiagnostics.state == NSControlStateValueOn) [args addObject:@"--perf-diagnostics"];
+    if (self.gpuProfile.state == NSControlStateValueOn) [args addObject:@"--gpu-profile"];
+    NSArray *gpuModes = @[@"baseline", @"queue2", @"direct-record"];
+    [args addObjectsFromArray:@[@"--gpu-mode", gpuModes[self.gpuMode.indexOfSelectedItem]]];
     NSURL *logs = [self.dataURL URLByAppendingPathComponent:@"logs" isDirectory:YES];
     [NSFileManager.defaultManager createDirectoryAtURL:logs withIntermediateDirectories:YES attributes:nil error:nil];
     self.logURL = [logs URLByAppendingPathComponent:[NSString stringWithFormat:@"launch-%@.log", NSUUID.UUID.UUIDString]];

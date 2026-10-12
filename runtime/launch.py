@@ -84,7 +84,8 @@ def validate(game, policy, scripts):
     if not assets.is_dir() or not any(assets.iterdir()):
         raise ValueError('dvdroot_ps4 is missing or empty')
     sfo = read_sfo((game / 'sce_sys/param.sfo').read_bytes())
-    if sfo.get('TITLE_ID') != policy['title_id'] or sfo.get('APP_VER') != policy['app_version']:
+    allowed_ids = {policy['title_id'], *policy.get('experimental_title_ids', [])}
+    if sfo.get('TITLE_ID') not in allowed_ids or sfo.get('APP_VER') != policy['app_version']:
         raise ValueError('Expected ' + policy['title_id'] + ' v' + policy['app_version'] + '; found ' +
                          str(sfo.get('TITLE_ID')) + ' v' + str(sfo.get('APP_VER')))
     prepare = load_prepare(scripts)
@@ -122,6 +123,8 @@ def make_config(resolution, fsr):
 
 def launch(a, policy):
     checked = validate(a.game, policy, BACKEND / 'scripts')
+    if checked['title_id'] in policy.get('experimental_title_ids', []) and a.fps != '30':
+        raise ValueError('FPS++ is not validated for this experimental title/executable. Use 30 FPS in the source build; the tested prepatched executable needs a separate, hash-verified patch policy.')
     game = Path(checked['game'])
     data = Path(a.data).expanduser().resolve()
     data.mkdir(parents=True, exist_ok=True)
@@ -149,7 +152,25 @@ def launch(a, policy):
                BB_FRAMES_AHEAD='1', BB_INPUT_MODE='auto',
                MVK_CONFIG_FAST_MATH_ENABLED='0', MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS='1',
                MVK_CONFIG_PREFILL_METAL_COMMAND_BUFFERS='0', MVK_CONFIG_LOG_LEVEL='2')
-    namespace = {'game': checked['eboot_sha256'], 'os': platform.mac_ver()[0],
+    # Driver selection is based only on a bundled ICD, never an inherited VK_* path.
+    kosmic_icd = RESOURCES / 'vulkan/kosmickrisp/kosmickrisp_mesa_icd.json'
+    driver_name = 'MoltenVK'
+    if kosmic_icd.is_file():
+        driver_name = 'KosmicKrisp'
+        env['VK_DRIVER_FILES'] = str(kosmic_icd)
+        for key in tuple(env):
+            if key.startswith('MVK_'):
+                del env[key]
+    # Experimental scheduler A/B modes; baseline remains the established safe path.
+    if a.gpu_mode == 'queue2':
+        env['BB_FRAMES_AHEAD'] = '2'
+    elif a.gpu_mode == 'direct-record':
+        env['BB_VK_RECORD_THREAD'] = '0'
+    if a.perf_diagnostics:
+        env.update(BB_FRAME_STATS='1', BB_PRESENT_STATS='1', BB_BUFFER_STATS='1')
+    if a.gpu_profile:
+        env['BB_GPU_PROFILE'] = '1'
+    namespace = {'driver': driver_name, 'game': checked['eboot_sha256'], 'os': platform.mac_ver()[0],
                  'os_build': os.uname().version,
                  'build': json.loads((RESOURCES / 'dependencies.lock.json').read_text()),
                  'mvk': {k: v for k, v in env.items() if k.startswith('MVK_')},
@@ -166,6 +187,7 @@ def launch(a, policy):
     os.chdir(BACKEND)
     print(checked['message'], flush=True)
     print('Preparing private guest images. Original dump remains read-only.', flush=True)
+    print('Vulkan driver: ' + driver_name + '; GPU mode: ' + a.gpu_mode + '; performance diagnostics: ' + ('on' if a.perf_diagnostics else 'off') + '; GPU timestamp profile: ' + ('on' if a.gpu_profile else 'off'), flush=True)
     run_script('prepare.py', [game, '--out', generated])
     run_script('link_libc.py', [game, '--out', generated])
     run_script('link_modules.py', [game, '--out', generated])
@@ -199,6 +221,9 @@ def main():
     p.add_argument('--fps', choices=['30', '60', '90'], default='30')
     p.add_argument('--resolution', type=int, choices=[0, 1, 2, 3], default=0)
     p.add_argument('--fsr', action='store_true')
+    p.add_argument('--perf-diagnostics', action='store_true', help='Enable runtime frame/present/buffer statistics where supported')
+    p.add_argument('--gpu-mode', choices=['baseline', 'queue2', 'direct-record'], default='baseline', help='Experimental GPU submission/recording A/B mode')
+    p.add_argument('--gpu-profile', action='store_true', help='Intrusive Vulkan GPU timestamps by render-pass label')
     p.add_argument('--skip-intro', action='store_true')
     a = p.parse_args()
     try:
