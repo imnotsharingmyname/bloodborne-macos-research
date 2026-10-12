@@ -1,7 +1,7 @@
 name: M1 Pro experimental KosmicKrisp build
 on:
   push:
-    branches: [perf/m1-pro-kosmickrisp-diagnostics]
+    branches: [perf/m1-pro-kosmickrisp-diagnostics, perf/gpu-pass-profiler]
   workflow_dispatch:
 concurrency:
   group: kosmickrisp-experimental-${{ github.ref }}
@@ -23,7 +23,8 @@ jobs:
           xcodebuild -version
       - name: Portable syntax checks
         run: |
-          python3 -m py_compile runtime/launch.py scripts/install_kosmickrisp.py
+          python3 -m py_compile runtime/launch.py scripts/install_kosmickrisp.py scripts/summarize_gpu_profile.py
+          python3 tests/test_gpu_profile_report.py
           python3 -m json.tool config/game-policy.json >/dev/null
       - name: Build x86_64 experimental Rosetta runtime
         run: bash build_mac.sh --jobs 3
