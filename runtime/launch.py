@@ -161,6 +161,11 @@ def launch(a, policy):
         for key in tuple(env):
             if key.startswith('MVK_'):
                 del env[key]
+    # Experimental scheduler A/B modes; baseline remains the established safe path.
+    if a.gpu_mode == 'queue2':
+        env['BB_FRAMES_AHEAD'] = '2'
+    elif a.gpu_mode == 'direct-record':
+        env['BB_VK_RECORD_THREAD'] = '0'
     if a.perf_diagnostics:
         env.update(BB_FRAME_STATS='1', BB_PRESENT_STATS='1', BB_BUFFER_STATS='1')
     namespace = {'driver': driver_name, 'game': checked['eboot_sha256'], 'os': platform.mac_ver()[0],
@@ -180,7 +185,7 @@ def launch(a, policy):
     os.chdir(BACKEND)
     print(checked['message'], flush=True)
     print('Preparing private guest images. Original dump remains read-only.', flush=True)
-    print('Vulkan driver: ' + driver_name + '; performance diagnostics: ' + ('on' if a.perf_diagnostics else 'off'), flush=True)
+    print('Vulkan driver: ' + driver_name + '; GPU mode: ' + a.gpu_mode + '; performance diagnostics: ' + ('on' if a.perf_diagnostics else 'off'), flush=True)
     run_script('prepare.py', [game, '--out', generated])
     run_script('link_libc.py', [game, '--out', generated])
     run_script('link_modules.py', [game, '--out', generated])
@@ -215,6 +220,7 @@ def main():
     p.add_argument('--resolution', type=int, choices=[0, 1, 2, 3], default=0)
     p.add_argument('--fsr', action='store_true')
     p.add_argument('--perf-diagnostics', action='store_true', help='Enable runtime frame/present/buffer statistics where supported')
+    p.add_argument('--gpu-mode', choices=['baseline', 'queue2', 'direct-record'], default='baseline', help='Experimental GPU submission/recording A/B mode')
     p.add_argument('--skip-intro', action='store_true')
     a = p.parse_args()
     try:
