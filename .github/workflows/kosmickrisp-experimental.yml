@@ -3,6 +3,9 @@ on:
   push:
     branches: [perf/m1-pro-kosmickrisp-diagnostics]
   workflow_dispatch:
+concurrency:
+  group: kosmickrisp-experimental-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
   actions: read
