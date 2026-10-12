@@ -8,6 +8,7 @@
 @property(strong) NSPopUpButton *fps;
 @property(strong) NSButton *fsr;
 @property(strong) NSButton *skip;
+@property(strong) NSButton *perfDiagnostics;
 @property(strong) NSButton *selectButton;
 @property(strong) NSButton *launchButton;
 @property(strong) NSTask *worker;
@@ -54,6 +55,7 @@
     self.fps.enabled = !busy;
     self.fsr.enabled = !busy;
     self.skip.enabled = !busy;
+    self.perfDiagnostics.enabled = !busy;
 }
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
     (void)notification;
@@ -105,6 +107,8 @@
     self.skip = [NSButton checkboxWithTitle:@"Skip intro and warning screens" target:nil action:nil];
     [stack addArrangedSubview:self.fsr];
     [stack addArrangedSubview:self.skip];
+    self.perfDiagnostics = [NSButton checkboxWithTitle:@"Collect frame/present/buffer diagnostics (experimental)" target:nil action:nil];
+    [stack addArrangedSubview:self.perfDiagnostics];
     [stack addArrangedSubview:[self label:@"30 FPS is the starting target. Higher caps and upscaling do not guarantee performance or compatibility."]];
     NSStackView *actions = [NSStackView stackViewWithViews:@[
         self.launchButton = [self button:@"Launch Bloodborne" action:@selector(launch:)],
@@ -230,6 +234,7 @@
         [NSString stringWithFormat:@"%ld", (long)self.resolution.indexOfSelectedItem]] mutableCopy];
     if (self.fsr.state == NSControlStateValueOn) [args addObject:@"--fsr"];
     if (self.skip.state == NSControlStateValueOn) [args addObject:@"--skip-intro"];
+    if (self.perfDiagnostics.state == NSControlStateValueOn) [args addObject:@"--perf-diagnostics"];
     NSURL *logs = [self.dataURL URLByAppendingPathComponent:@"logs" isDirectory:YES];
     [NSFileManager.defaultManager createDirectoryAtURL:logs withIntermediateDirectories:YES attributes:nil error:nil];
     self.logURL = [logs URLByAppendingPathComponent:[NSString stringWithFormat:@"launch-%@.log", NSUUID.UUID.UUIDString]];
